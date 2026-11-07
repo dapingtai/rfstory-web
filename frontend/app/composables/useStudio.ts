@@ -1,3 +1,5 @@
+import type { PhotoCrop, PhotoFrameId } from './usePhotoFrame'
+
 export const templateOptions = [
   { id: 'film-archive', name: '底片紀錄', description: '預設 · 柔暖邊界' },
   { id: 'classic-white', name: '經典白框', description: '留白 · 日常收藏' },
@@ -9,11 +11,22 @@ export const templateOptions = [
 
 export type TemplateId = (typeof templateOptions)[number]['id']
 
+export function photoLabel(photos: readonly StudioPhoto[], id: string): string {
+  const index = photos.findIndex((photo) => photo.id === id)
+  return `PHOTO ${String(photos[index]?.displayNumber ?? index + 1).padStart(2, '0')}`
+}
+
 export type StudioPhoto = {
   id: string
+  displayNumber: number
+  crop: PhotoCrop | null
   x: number
   y: number
   width: number
+  scale: number
+  rotation: number
+  frame: PhotoFrameId
+  frameBorder: number
   infoX: number
   infoY: number
   title: string
@@ -36,8 +49,10 @@ export type StudioSettings = {
   shutter: string
   iso: string
   date: string
-  ratio: '3:2' | '4:3' | '1:1' | '16:9'
+  ratio: '3:2' | '4:3' | '1:1' | '16:9' | '9:16'
   border: number
+  globalInfoOffsetX: number
+  globalInfoOffsetY: number
   format: 'image/jpeg' | 'image/png' | 'image/webp'
   photos: StudioPhoto[]
 }
@@ -54,6 +69,8 @@ export const defaultSettings: StudioSettings = {
   date: '2026.11.03',
   ratio: '3:2',
   border: 56,
+  globalInfoOffsetX: 0,
+  globalInfoOffsetY: 0,
   format: 'image/jpeg',
   photos: []
 }
@@ -64,5 +81,6 @@ export function aspectSize(ratio: StudioSettings['ratio']): readonly [number, nu
     case '4:3': return [1200, 900]
     case '1:1': return [1000, 1000]
     case '16:9': return [1280, 720]
+    case '9:16': return [1080, 1920]
   }
 }
