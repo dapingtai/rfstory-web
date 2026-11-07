@@ -26,8 +26,8 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', outside))
 </script>
 
 <template>
-  <div ref="menu" class="photo-context-menu" role="menu" :aria-label="`${label} 編輯工具`" :style="{ left: `${left}px`, top: `${top}px` }" @keydown="keyboard" @contextmenu.prevent>
-    <div class="context-label mono">{{ label }}</div>
+  <div ref="menu" class="fixed z-20 grid min-w-[180px] rounded-lg border border-studio-border bg-studio-surface p-1.5 shadow-[0_8px_32px_#0000004d]" role="menu" :aria-label="`${label} 編輯工具`" :style="{ left: `${left}px`, top: `${top}px` }" @keydown="keyboard" @contextmenu.prevent>
+    <div class="mono border-b border-studio-border px-2.5 py-2 text-[11px] text-studio-muted">{{ label }}</div>
     <button type="button" role="menuitem" @click="emit('crop')">裁切照片</button>
     <button type="button" role="menuitem" :disabled="!canRaise" @click="emit('raise')">上移一層</button>
     <button type="button" role="menuitem" :disabled="!canLower" @click="emit('lower')">下移一層</button>
@@ -35,9 +35,8 @@ onBeforeUnmount(() => window.removeEventListener('pointerdown', outside))
 </template>
 
 <style scoped>
-.photo-context-menu { position:fixed; z-index:20; display:grid; min-width:180px; padding:6px; border:1px solid var(--border); border-radius:8px; background:var(--surface); box-shadow:0 8px 32px rgba(0,0,0,.3); }
-.context-label { padding:8px 10px; color:var(--muted); font-size:11px; border-bottom:1px solid var(--border); }
-button { text-align:left; min-height:36px; padding:8px 10px; border:0; border-radius:4px; background:transparent; color:var(--fg); font-size:12px; }
-button:hover:not(:disabled),button:focus-visible { background:color-mix(in srgb,var(--accent) 12%,transparent); }
-button:disabled { opacity:.35; cursor:not-allowed; }
+@reference "../assets/rfstory.css";
+button { @apply min-h-9 rounded border-0 bg-transparent px-2.5 py-2 text-left text-xs text-studio-fg; }
+button:hover:not(:disabled), button:focus-visible { @apply bg-studio-accent/12; }
+button:disabled { @apply cursor-not-allowed opacity-35; }
 </style>

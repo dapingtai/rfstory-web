@@ -6,7 +6,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: PhotoFrameId] }>()
 </script>
 
 <template>
-  <div class="photo-frame-picker" role="group" aria-label="照片邊框模板">
+  <div class="photo-frame-picker grid grid-cols-3 gap-1.5" role="group" aria-label="照片邊框模板">
     <button v-for="frame in photoFrameOptions" :key="frame.id" type="button" :aria-pressed="modelValue === frame.id" @click="emit('update:modelValue', frame.id)">
       <span class="frame-swatch" :data-frame="frame.id" aria-hidden="true"><span></span></span>
       <span>{{ frame.name }}</span>
@@ -15,16 +15,17 @@ const emit = defineEmits<{ 'update:modelValue': [value: PhotoFrameId] }>()
 </template>
 
 <style scoped>
-.photo-frame-picker { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-.photo-frame-picker button { display:grid; justify-items:center; gap:6px; min-width:0; padding:8px 4px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--muted); font-size:12px; }
-.photo-frame-picker button:hover,.photo-frame-picker button[aria-pressed="true"] { border-color:var(--accent); color:var(--fg); background:color-mix(in srgb,var(--accent) 8%,transparent); }
-.frame-swatch { display:block; width:40px; height:32px; padding:3px; background:var(--paper); }
-.frame-swatch > span { display:block; width:100%; height:100%; background:linear-gradient(145deg,var(--swatch-mid) 48%,var(--accent) 49%); }
-.frame-swatch[data-frame="auto"] { background:repeating-linear-gradient(45deg,var(--paper) 0 3px,var(--muted) 3px 6px); }
-.frame-swatch[data-frame="none"] { padding:0; background:transparent; }
-.frame-swatch[data-frame="black"],.frame-swatch[data-frame="film"] { background:var(--ink); }
-.frame-swatch[data-frame="instant"],.frame-swatch[data-frame="instant-shadow"] { padding-bottom:9px; }
-.frame-swatch[data-frame="instant-shadow"] { box-shadow:2px 3px 5px rgba(0,0,0,.32); }
-.frame-swatch[data-frame="double"] { outline:1px solid var(--muted); outline-offset:-2px; padding:5px; }
-.frame-swatch[data-frame="film"] { border-block:3px dashed var(--muted); padding-block:1px; }
+@reference "../assets/rfstory.css";
+.photo-frame-picker button { @apply grid min-w-0 justify-items-center gap-1.5 rounded-md border border-studio-border bg-transparent px-1 py-2 text-xs text-studio-muted; }
+.photo-frame-picker button:hover, .photo-frame-picker button[aria-pressed="true"] { @apply border-studio-accent bg-studio-accent/8 text-studio-fg; }
+.frame-swatch { @apply block h-8 w-10 bg-studio-paper p-[3px]; }
+.frame-swatch > span { @apply block size-full bg-[linear-gradient(145deg,var(--swatch-mid)_48%,var(--accent)_49%)]; }
+.frame-swatch[data-frame="auto"] { @apply bg-[repeating-linear-gradient(45deg,var(--paper)_0_3px,var(--muted)_3px_6px)]; }
+.frame-swatch[data-frame="none"] { @apply bg-transparent p-0; }
+.frame-swatch[data-frame="black"], .frame-swatch[data-frame="film"] { @apply bg-studio-ink; }
+.frame-swatch[data-frame="black-shadow"] { @apply bg-[#18181B] shadow-[2px_3px_6px_#00000073] outline outline-[#52525B] -outline-offset-1; }
+.frame-swatch[data-frame="instant-shadow"] { @apply pb-[9px]; }
+.frame-swatch[data-frame="instant-shadow"] { @apply shadow-[2px_3px_5px_#00000052]; }
+.frame-swatch[data-frame="double"] { @apply p-[5px] outline outline-studio-muted -outline-offset-2; }
+.frame-swatch[data-frame="film"] { @apply border-y-[3px] border-dashed border-studio-muted py-px; }
 </style>

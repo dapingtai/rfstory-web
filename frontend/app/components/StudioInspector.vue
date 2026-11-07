@@ -86,22 +86,22 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
     </section>
     <section v-if="selectedPhoto === null && modelValue.photos.length === 0" class="control-group"><div class="control-title">上傳照片後，可從畫布或上方分頁選取，開啟單張照片工具。</div></section>
     </div>
-    <section class="control-group history-controls">
+    <section class="control-group history-controls grid-cols-3">
       <button type="button" @click="emit('undo')">復原</button><button type="button" @click="emit('redo')">重做</button><button type="button" title="儲存全域設定，不含單張照片" @click="emit('save')">全域預設</button>
     </section>
   </aside>
 </template>
 
 <style scoped>
-.scope-navigation { position:sticky; top:-24px; z-index:1; padding:16px 0 12px; background:var(--surface); border-bottom:1px solid var(--border); }
-.scope-tabs { display:flex; gap:6px; overflow-x:auto; padding:2px 2px 8px; scrollbar-width:thin; }
-.scope-tabs button { flex-shrink:0; min-height:36px; padding:8px 10px; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--muted); font-size:12px; }
-.scope-tabs button[aria-selected="true"] { background:var(--accent); color:var(--bg); border-color:var(--accent); }
-.scope-summary { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:8px; padding:12px; border:1px dashed var(--border); border-radius:6px; }
-.scope-summary[data-scope="photo"] { border-style:solid; border-color:var(--accent); background:color-mix(in srgb,var(--accent) 6%,transparent); }
-.scope-summary strong { font-size:13px; }
-.scope-badge { padding:3px 5px; background:var(--bg); color:var(--muted); font-size:10px; letter-spacing:.06em; border-radius:3px; }
-.scope-summary[data-scope="photo"] .scope-badge { background:var(--accent); color:var(--bg); }
-.scope-summary p { grid-column:1/-1; margin:0; color:var(--muted); font-size:12px; line-height:1.6; }
-@media (max-width:680px) { .scope-navigation { top:-20px; }.scope-tabs button { min-height:44px; } }
+@reference "../assets/rfstory.css";
+.scope-navigation { @apply sticky -top-6 z-1 border-b border-studio-border bg-studio-surface pt-4 pb-3 max-[680px]:-top-5; }
+.scope-tabs { @apply flex gap-1.5 overflow-x-auto px-0.5 pt-0.5 pb-2 [scrollbar-width:thin]; }
+.scope-tabs button { @apply min-h-9 shrink-0 rounded-md border border-studio-border bg-transparent px-2.5 py-2 text-xs text-studio-muted max-[680px]:min-h-11; }
+.scope-tabs button[aria-selected="true"] { @apply border-studio-accent bg-studio-accent text-studio-bg; }
+.scope-summary { @apply grid grid-cols-[auto_1fr] items-center gap-2 rounded-md border border-dashed border-studio-border p-3; }
+.scope-summary[data-scope="photo"] { @apply border-solid border-studio-accent bg-studio-accent/6; }
+.scope-summary strong { @apply text-[13px]; }
+.scope-badge { @apply rounded-[3px] bg-studio-bg px-[5px] py-[3px] text-[10px] tracking-[.06em] text-studio-muted; }
+.scope-summary[data-scope="photo"] .scope-badge { @apply bg-studio-accent text-studio-bg; }
+.scope-summary p { @apply col-span-full m-0 text-xs leading-[1.6] text-studio-muted; }
 </style>

@@ -12,7 +12,7 @@ const emit = defineEmits<{
 
 <template>
   <aside class="studio-sidebar" aria-label="素材與模板">
-    <div class="brand-lockup"><span class="brand-mark">RF</span><span>RFStory</span><button class="theme-toggle" type="button" @click="emit('toggleTheme')">{{ theme === 'dark' ? '淺色' : '深色' }}</button></div>
+    <div class="brand-lockup"><span class="grid size-[30px] place-items-center border border-studio-accent font-mono text-xs">RF</span><span>RFStory</span><button class="theme-toggle" type="button" @click="emit('toggleTheme')">{{ theme === 'dark' ? '淺色' : '深色' }}</button></div>
     <section>
       <div class="section-heading"><span>素材</span><span class="mono">01</span></div>
       <label class="upload-zone">
@@ -28,7 +28,7 @@ const emit = defineEmits<{
           v-for="template in templateOptions"
           :key="template.id"
           :aria-pressed="activeTemplate === template.id"
-          :class="['template-card', { active: activeTemplate === template.id }]"
+          class="template-card"
           type="button"
           @click="emit('select', template.id)"
         >

@@ -20,7 +20,16 @@ yarn install
 bun install
 ```
 
-## Development Server
+## Styling (Tailwind CSS 4)
+
+- `app/assets/rfstory.css` imports Tailwind and Nuxt UI; the existing `@nuxt/ui` module provides the Tailwind Vite integration.
+- Use utility classes in Vue templates for one-off styles. Shared controls/layouts use `@apply` in `@layer components` so utilities can override them.
+- Theme utilities include `bg-studio-bg`, `bg-studio-surface`, `text-studio-fg`, `text-studio-muted`, `border-studio-border`, and `text-studio-accent`.
+- Palette variables are retained for the canvas renderer and switch with `data-theme`. Do not replace them with fixed colors in canvas rendering code.
+- Scoped styles using `@apply` must include `@reference "../assets/rfstory.css";` to access the theme without duplicating the global stylesheet.
+- Studio layout breakpoints remain 980px (tablet) and 680px (mobile). Dynamic canvas sizing and crop/menu coordinates remain CSS variables or Vue style bindings.
+
+## Running locally
 
 Start the development server on `http://localhost:3000`:
 

@@ -107,41 +107,37 @@ function handleCanvasKey(event: KeyboardEvent): void {
 
 <template>
   <main class="canvas-panel">
-    <div class="canvas-toolbar">
-      <span class="status-dot"></span><span>本機工作階段</span>
-      <span class="canvas-ratio mono">{{ settings.ratio }}</span>
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-2.5 text-xs text-studio-muted">
+      <span class="size-[7px] rounded-full bg-studio-accent"></span><span>本機工作階段</span>
+      <span class="mono ml-auto">{{ settings.ratio }}</span>
       <StudioCanvasToolbar v-model="zoom" :pan-mode="panMode" @toggle-pan="panMode = !panMode" @reset="resetView" />
     </div>
-    <div class="canvas-stage" :data-pan="panMode || spaceHeld" :data-panning="pan !== null">
-      <div ref="viewport" class="canvas-viewport" :style="{ '--canvas-aspect': aspectSize(settings.ratio)[0] / aspectSize(settings.ratio)[1], '--canvas-zoom': zoom / 100 }">
-        <div ref="scrollArea" class="canvas-scroll-area">
-          <div class="canvas-zoom-surface" tabindex="-1" @pointerdown.self="startPan" @pointermove="movePan" @pointerup="finishPan" @pointercancel="finishPan" @lostpointercapture="finishPan">
-        <canvas ref="canvas" tabindex="0" aria-label="多照片即時預覽；右鍵編輯照片；空白鍵加拖曳移動畫布；選取照片後按 Delete 刪除" @contextmenu.prevent="emit('contextmenu', $event)" @keydown="handleCanvasKey" @pointercancel="pan === null && emit('pointercancel')" @pointerdown="pointerDown" @pointermove="pan === null && emit('pointermove', $event)" @pointerup="pan === null && emit('pointerup', $event)"></canvas>
+    <div class="canvas-stage relative grid min-h-0 min-w-0 place-items-center p-0 max-[680px]:py-4" :data-pan="panMode || spaceHeld" :data-panning="pan !== null">
+      <div ref="viewport" class="canvas-viewport absolute inset-x-0 inset-y-2 block [container-type:size]" :style="{ '--canvas-aspect': aspectSize(settings.ratio)[0] / aspectSize(settings.ratio)[1], '--canvas-zoom': zoom / 100 }">
+        <div ref="scrollArea" class="absolute inset-0 overflow-hidden overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div class="canvas-zoom-surface grid cursor-grab touch-none place-items-center" tabindex="-1" @pointerdown.self="startPan" @pointermove="movePan" @pointerup="finishPan" @pointercancel="finishPan" @lostpointercapture="finishPan">
+        <canvas ref="canvas" class="block h-auto cursor-grab touch-none outline outline-studio-border shadow-[0_20px_60px_#00000047] active:cursor-move focus-visible:outline-2 focus-visible:outline-studio-accent focus-visible:outline-offset-4" tabindex="0" aria-label="多照片即時預覽；右鍵編輯照片；空白鍵加拖曳移動畫布；選取照片後按 Delete 刪除" @contextmenu.prevent="emit('contextmenu', $event)" @keydown="handleCanvasKey" @pointercancel="pan === null && emit('pointercancel')" @pointerdown="pointerDown" @pointermove="pan === null && emit('pointermove', $event)" @pointerup="pan === null && emit('pointerup', $event)"></canvas>
           </div>
         </div>
       </div>
       <input ref="fileInput" hidden accept="image/jpeg,image/png,image/webp" multiple type="file" @change="emit('upload', $event)">
-      <button v-if="!hasImage" class="canvas-empty canvas-empty-upload" type="button" aria-label="點選空白畫布上傳照片" @click="fileInput?.click()">
-        <span class="empty-glyph" aria-hidden="true">+</span>
-        <strong>從一張照片開始</strong>
-        <p>點選畫布上傳照片 · 影像只會留在你的瀏覽器中。</p>
+      <button v-if="!hasImage" class="group absolute inset-x-0 inset-y-2 grid content-center justify-items-center gap-2 border-0 bg-transparent p-4 text-center text-studio-muted" type="button" aria-label="點選空白畫布上傳照片" @click="fileInput?.click()">
+        <span class="grid size-10 place-items-center border border-studio-border text-2xl group-hover:border-studio-accent group-hover:text-studio-fg" aria-hidden="true">+</span>
+        <strong class="text-studio-fg">從一張照片開始</strong>
+        <p class="m-0 text-[13px]">點選畫布上傳照片 · 影像只會留在你的瀏覽器中。</p>
       </button>
     </div>
   </main>
 </template>
 
 <style scoped>
-.canvas-toolbar { flex-wrap:wrap; row-gap:10px; }
-.canvas-viewport { display:block; }
-.canvas-scroll-area { position:absolute; inset:0; overflow:hidden; overscroll-behavior:contain; scrollbar-width:none; }
-.canvas-scroll-area::-webkit-scrollbar { display:none; }
+@reference "../assets/rfstory.css";
 /* Leave 8px around the fitted canvas so its outline survives the clipped viewport. */
-.canvas-zoom-surface { --fitted-width:max(1px,min(calc(100cqw - 16px),calc((100cqh - 16px) * var(--canvas-aspect)))); width:max(100cqw,calc(var(--fitted-width) * var(--canvas-zoom))); height:max(100cqh,calc(var(--fitted-width) * var(--canvas-zoom) / var(--canvas-aspect))); display:grid; place-items:center; }
-.canvas-zoom-surface { touch-action:none; cursor:grab; }
-.canvas-stage[data-pan="true"] canvas { cursor:grab!important; }
-.canvas-stage[data-panning="true"] canvas,.canvas-stage[data-panning="true"] .canvas-zoom-surface { cursor:grabbing!important; user-select:none; }
-.canvas-viewport canvas { width:calc(var(--fitted-width) * var(--canvas-zoom)); max-width:none; max-height:none; }
-.canvas-empty-upload { inset:8px 0; align-content:center; padding:16px; border:0; background:transparent; pointer-events:auto; }
-.canvas-empty-upload:hover .empty-glyph { border-color:var(--accent); color:var(--fg); }
-.canvas-viewport canvas:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.canvas-zoom-surface {
+  --fitted-width: max(1px, min(calc(100cqw - 16px), calc((100cqh - 16px) * var(--canvas-aspect))));
+  @apply w-[max(100cqw,calc(var(--fitted-width)*var(--canvas-zoom)))] h-[max(100cqh,calc(var(--fitted-width)*var(--canvas-zoom)/var(--canvas-aspect)))];
+}
+.canvas-stage[data-pan="true"] canvas { @apply cursor-grab!; }
+.canvas-stage[data-panning="true"] canvas, .canvas-stage[data-panning="true"] .canvas-zoom-surface { @apply cursor-grabbing! select-none; }
+.canvas-viewport canvas { @apply w-[calc(var(--fitted-width)*var(--canvas-zoom))] max-h-none max-w-none; }
 </style>

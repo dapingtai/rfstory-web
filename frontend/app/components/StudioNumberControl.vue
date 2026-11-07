@@ -28,12 +28,12 @@ function commit(): void {
 </script>
 
 <template>
-  <div class="number-control">
+  <div class="grid min-w-0 gap-1.5 text-xs text-studio-muted">
     <label :for="`${id}-number`">{{ label }}</label>
-    <div class="number-control-fields">
+    <div class="number-control-fields flex min-w-0 items-center gap-1.5">
       <button type="button" :aria-label="`減少${label}`" :disabled="modelValue <= min" @click="update(modelValue - step)">−</button>
       <input :id="`${id}-number`" v-model="draft" class="mono" type="number" :min="min" :max="max" :step="step" @change="commit" @blur="commit" @keydown.enter.prevent="commit">
-      <span v-if="unit" class="number-control-unit mono">{{ unit }}</span>
+      <span v-if="unit" class="mono text-xs text-studio-muted">{{ unit }}</span>
       <button type="button" :aria-label="`增加${label}`" :disabled="modelValue >= max" @click="update(modelValue + step)">＋</button>
     </div>
     <input type="range" :aria-label="label" :value="modelValue" :min="min" :max="max" :step="step" @input="update(Number(($event.target as HTMLInputElement).value))">
@@ -41,12 +41,9 @@ function commit(): void {
 </template>
 
 <style scoped>
-.number-control { display:grid; gap:6px; min-width:0; color:var(--muted); font-size:12px; }
-.number-control-fields { display:flex; align-items:center; gap:6px; min-width:0; }
-.number-control-fields input { flex:1; min-width:0; height:36px; padding:9px 10px; font-size:12px; text-align:center; }
-.number-control-fields button { flex:0 0 36px; height:36px; padding:0; border:1px solid var(--border); border-radius:6px; color:var(--fg); background:color-mix(in srgb,var(--bg) 70%,transparent); font-size:12px; }
-.number-control-fields button:hover:not(:disabled) { background:color-mix(in srgb,var(--accent) 8%,transparent); }
-.number-control-fields button:disabled { opacity:.35; cursor:not-allowed; }
-.number-control-unit { color:var(--muted); font-size:12px; }
-@media (max-width:680px) { .number-control-fields button { flex-basis:44px; height:44px; }.number-control-fields input { height:44px; } }
+@reference "../assets/rfstory.css";
+.number-control-fields input { @apply h-9 min-w-0 flex-1 px-2.5 py-[9px] text-center text-xs max-[680px]:h-11; }
+.number-control-fields button { @apply h-9 flex-[0_0_36px] rounded-md border border-studio-border bg-studio-bg/70 p-0 text-xs text-studio-fg max-[680px]:h-11 max-[680px]:basis-11; }
+.number-control-fields button:hover:not(:disabled) { @apply bg-studio-accent/8; }
+.number-control-fields button:disabled { @apply cursor-not-allowed opacity-35; }
 </style>
