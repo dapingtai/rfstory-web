@@ -7,6 +7,7 @@ const emit = defineEmits<{
   select: [template: TemplateId]
   upload: [event: Event]
   toggleTheme: []
+  close: []
 }>()
 </script>
 
@@ -31,6 +32,7 @@ const emit = defineEmits<{
         </svg>
       </button>
     </div>
+    <button class="materials-close" type="button" aria-label="關閉素材與模板" @click="emit('close')">關閉 ×</button>
     <section>
       <div class="section-heading"><span>素材</span><span class="mono">01</span></div>
       <label class="upload-zone">

@@ -46,4 +46,16 @@ function commit(): void { update(draft.value.trim() === '' ? props.modelValue : 
 .canvas-view-tools button[aria-pressed="true"] { @apply border-studio-accent bg-studio-accent text-studio-bg; }
 .canvas-zoom-value input::-webkit-inner-spin-button, .canvas-zoom-value input::-webkit-outer-spin-button { @apply m-0 appearance-none; }
 .canvas-mode-icon { @apply grid place-items-center; }
+@media (max-width: 767px), (max-width: 980px) and (max-height: 500px) {
+  .canvas-view-tools { display: grid; grid-template-columns: 44px minmax(56px, 1fr) 44px auto; }
+  .canvas-view-tools button, .canvas-zoom-value { min-height: 44px; }
+  .canvas-view-tools button { min-width: 44px; }
+  .canvas-view-tools > button:last-child { grid-column: 1 / -1; margin-left: 0; }
+  .canvas-zoom-value { justify-content: center; }
+  .canvas-zoom-value input { font-size: 16px; }
+}
+@media (min-width: 600px) and (max-width: 980px) and (max-height: 500px) {
+  .canvas-view-tools { grid-template-columns: 44px minmax(56px, 1fr) 44px auto auto; }
+  .canvas-view-tools > button:last-child { grid-column: auto; }
+}
 </style>

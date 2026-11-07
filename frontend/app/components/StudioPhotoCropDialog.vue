@@ -58,4 +58,9 @@ onMounted(() => dialog.value?.showModal())
 .photo-crop-dialog { @apply max-h-[90dvh] w-[min(720px,calc(100%_-_32px))] overflow-auto p-6; }
 .crop-fields :deep(input) { @apply w-full rounded-md border border-studio-border bg-studio-bg text-studio-fg; }
 .crop-actions button { @apply min-h-9 rounded-md border border-studio-border bg-studio-surface px-3 py-2 text-xs text-studio-fg; }
+@media (max-width: 767px), (max-width: 980px) and (max-height: 500px) {
+  .photo-crop-dialog { padding: 16px; }
+  .crop-fields { grid-template-columns: minmax(0, 1fr); }
+  .crop-actions button { min-height: 44px; }
+}
 </style>

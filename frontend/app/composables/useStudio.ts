@@ -11,6 +11,25 @@ export const templateOptions = [
 
 export type TemplateId = (typeof templateOptions)[number]['id']
 
+export const globalInfoFields = [
+  { key: 'frameLabel', label: '畫布標記', multiline: false },
+  { key: 'title', label: '作品標題', multiline: false },
+  { key: 'note', label: '敘述', multiline: true },
+  { key: 'camera', label: '相機', multiline: false },
+  { key: 'lens', label: '鏡頭', multiline: false },
+  { key: 'aperture', label: '光圈', multiline: false },
+  { key: 'shutter', label: '快門', multiline: false },
+  { key: 'iso', label: '感光度', multiline: false },
+  { key: 'date', label: '日期', multiline: false }
+] as const
+
+export type GlobalInfoField = (typeof globalInfoFields)[number]['key']
+
+export function globalInfoText(settings: StudioSettings, fields: readonly GlobalInfoField[], separator = ' · '): string {
+  return fields.filter((key) => settings.globalInfoVisibility[key] !== false)
+    .map((key) => settings[key]).filter((value) => value.trim() !== '').join(separator)
+}
+
 export function photoLabel(photos: readonly StudioPhoto[], id: string): string {
   const index = photos.findIndex((photo) => photo.id === id)
   return `PHOTO ${String(photos[index]?.displayNumber ?? index + 1).padStart(2, '0')}`
@@ -41,6 +60,8 @@ export type StudioPhoto = {
 
 export type StudioSettings = {
   template: TemplateId
+  frameLabel: string
+  globalInfoVisibility: Partial<Record<GlobalInfoField, boolean>>
   title: string
   note: string
   camera: string
@@ -59,6 +80,8 @@ export type StudioSettings = {
 
 export const defaultSettings: StudioSettings = {
   template: 'film-archive',
+  frameLabel: 'RFSTORY / FRAME 01',
+  globalInfoVisibility: { note: false },
   title: 'Untitled Frame',
   note: '一格關於光線、時間與此刻的備忘。',
   camera: 'Leica M11',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue'
-import { aspectSize, defaultSettings, photoLabel, templateOptions, type StudioPhoto, type StudioSettings, type TemplateId } from '~/composables/useStudio'
+import { aspectSize, defaultSettings, globalInfoText, photoLabel, templateOptions, type StudioPhoto, type StudioSettings, type TemplateId } from '~/composables/useStudio'
 import { drawFramedPhoto, photoFrameLayout, resolvePhotoFrame, type PhotoCrop } from '~/composables/usePhotoFrame'
 
 type CanvasBounds = { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
@@ -20,12 +20,16 @@ const showExport = ref(false)
 const showSettings = ref(false)
 const showMaterials = ref(false)
 const isMobile = ref(false)
+const isCompact = ref(false)
+const shell = ref<HTMLElement | null>(null)
+let panelTrigger: HTMLElement | null = null
 const exportDialog = ref<HTMLDialogElement | null>(null)
 const theme = ref<'dark' | 'light'>('dark')
 const route = useRoute()
 const history = ref<StudioSettings[]>([])
 const future = ref<StudioSettings[]>([])
 let mobileMedia: MediaQueryList | null = null
+let compactMedia: MediaQueryList | null = null
 let globalInfoRegions: CanvasBounds[] = []
 const globalInfoSelected = ref(false)
 const contextMenu = ref<{ x: number; y: number } | null>(null)
@@ -35,8 +39,39 @@ const selectedLayerIndex = computed(() => settings.photos.findIndex((photo) => p
 
 function syncMobile(): void {
   isMobile.value = mobileMedia?.matches ?? false
-  if (isMobile.value) showSettings.value = false
+  isCompact.value = compactMedia?.matches ?? false
+  showSettings.value = false
+  showMaterials.value = false
 }
+
+const panelOpen = computed(() => (isCompact.value && showMaterials.value) || (isMobile.value && showSettings.value))
+
+function closePanels(): void { showMaterials.value = false; showSettings.value = false }
+
+function handlePanelKeys(event: KeyboardEvent): void {
+  if (!panelOpen.value || croppingPhoto.value !== null || showExport.value) return
+  if (event.key === 'Escape') { event.preventDefault(); closePanels(); return }
+  if (event.key !== 'Tab') return
+  const panel = shell.value?.querySelector(showMaterials.value ? '.studio-sidebar' : '.inspector')
+  const controls = Array.from(panel?.querySelectorAll<HTMLElement>('button:not(:disabled), input, textarea, select, [tabindex="0"]') ?? []).filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0)
+  const first = controls[0]
+  const last = controls.at(-1)
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+}
+
+watch(showMaterials, (open) => { if (open) showSettings.value = false })
+watch(showSettings, (open) => { if (open) showMaterials.value = false })
+watch(panelOpen, async (open) => {
+  if (open) {
+    panelTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    await nextTick()
+    shell.value?.querySelector<HTMLElement>(showMaterials.value ? '.studio-sidebar button' : '.sheet-close')?.focus()
+  } else {
+    await nextTick()
+    panelTrigger?.focus({ preventScroll: true })
+  }
+})
 
 function drawLines(context: CanvasRenderingContext2D, value: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines = 2, draw = (text: string, tx: number, ty: number) => context.fillText(text, tx, ty)): void {
   let line = ''
@@ -236,45 +271,49 @@ function drawFrameText(context: CanvasRenderingContext2D, width: number, height:
   if (settings.template === 'technical-exif') {
     context.font = '15px monospace'
     if (settings.ratio === '9:16') {
-      lines(`${settings.date}  ${settings.camera}  ${settings.lens}`, margin, 32, width - margin * 2, 22)
-      lines(`${settings.aperture}  ${settings.shutter}  ${settings.iso}`, margin, 82, width - margin * 2, 22)
+      lines(globalInfoText(settings, ['date', 'camera', 'lens'], '  '), margin, 32, width - margin * 2, 22)
+      lines(globalInfoText(settings, ['aperture', 'shutter', 'iso'], '  '), margin, 82, width - margin * 2, 22)
     } else {
-      text(`${settings.date}  ${settings.camera}  ${settings.lens}`, margin, 32)
-      text(`${settings.aperture}  ${settings.shutter}  ${settings.iso}`, width - 310, 32)
+      text(globalInfoText(settings, ['date', 'camera', 'lens'], '  '), margin, 32)
+      text(globalInfoText(settings, ['aperture', 'shutter', 'iso'], '  '), width - 310, 32)
     }
+    lines(globalInfoText(settings, ['note']), margin, settings.ratio === '9:16' ? 132 : 60, width - margin * 2, 20)
     return
   }
   if (editorial) {
     context.font = '32px Georgia'
-    lines(settings.title || 'Untitled Frame', width - 230, margin + 44, 185, 38)
+    lines(globalInfoText(settings, ['title']), width - 230, margin + 44, 185, 38)
     context.font = '16px Georgia'
-    lines(settings.note, width - 230, margin + 145, 185, 24)
+    lines(globalInfoText(settings, ['note']), width - 230, margin + 145, 185, 24)
     context.font = '13px monospace'
-    lines(`${settings.date} · ${settings.camera} · ${settings.lens}`, width - 230, height - 150, 185, 20)
+    lines(globalInfoText(settings, ['date', 'camera', 'lens']), width - 230, height - 150, 185, 20)
     return
   }
   if (settings.template === 'signature') {
-    const title = settings.title || 'Untitled Frame'
+    const title = globalInfoText(settings, ['title'])
     context.font = '26px Georgia'
     text(title, width - margin - context.measureText(title).width, height - 48)
     context.font = '14px monospace'
-    text(settings.date, margin, height - 48)
+    text(globalInfoText(settings, ['date']), margin, height - 48)
+    lines(globalInfoText(settings, ['note']), margin, height - 24, width - margin * 2, 16)
     return
   }
+  context.font = '14px Georgia'
+  lines(globalInfoText(settings, ['note']), margin, height - 110, width - margin * 2, 18)
   if (settings.template === 'film-archive') {
     context.font = '13px monospace'
-    text('RFSTORY / FRAME 01', margin, height - 82)
+    lines(globalInfoText(settings, ['frameLabel']), margin, height - 82, width - margin * 2, 16)
   }
   context.font = settings.template === 'classic-white' ? '30px Georgia' : '28px Georgia'
-  lines(settings.title || 'Untitled Frame', margin, height - 52, width - margin * 2, 34)
+  lines(globalInfoText(settings, ['title']), margin, height - 52, width - margin * 2, 34)
   context.font = '13px monospace'
-  lines(`${settings.date} · ${settings.camera} · ${settings.aperture} · ${settings.shutter} · ${settings.iso}`, margin, height - 30, width - margin * 2, 16)
+  lines(globalInfoText(settings, ['date', 'camera', 'aperture', 'shutter', 'iso']), margin, height - 30, width - margin * 2, 16)
 }
 
 function renderPreview(): void { if (previewCanvas.value !== null) renderFrame(previewCanvas.value, true) }
 function commit(next: StudioSettings): void { addHistory(snapshot()); Object.assign(settings, next) }
 function updateSettings(next: StudioSettings): void { commit(next) }
-function selectTemplate(template: TemplateId): void { commit({ ...settings, template }) }
+function selectTemplate(template: TemplateId): void { commit({ ...settings, template }); showMaterials.value = false }
 function undo(): void { const previous = history.value.pop(); if (previous !== undefined) { future.value.push({ ...settings }); Object.assign(settings, previous) } }
 function redo(): void { const next = future.value.pop(); if (next !== undefined) { history.value.push({ ...settings }); Object.assign(settings, next) } }
 
@@ -340,6 +379,7 @@ function upload(event: Event): void {
     image.src = url
   }
   input.value = ''
+  showMaterials.value = false
   if (invalid) notice.value = '僅支援 JPEG、PNG 或 WebP；RAW 與 DNG 請先轉檔。'
 }
 
@@ -383,6 +423,7 @@ function dragTarget(x: number, y: number, width: number, height: number): DragTa
 }
 
 function beginDrag(event: PointerEvent): void {
+  if (!event.isPrimary || event.button !== 0) return
   const point = canvasPoint(event)
   if (point === null) return
   point.canvas.focus({ preventScroll: true })
@@ -397,6 +438,7 @@ function beginDrag(event: PointerEvent): void {
 }
 
 function moveDrag(event: PointerEvent): void {
+  if (!event.isPrimary) return
   const point = canvasPoint(event)
   const drag = dragging.value
   if (point === null) return
@@ -532,8 +574,10 @@ function exportImage(): void {
 }
 
 onMounted(() => {
-  mobileMedia = window.matchMedia('(max-width: 680px)')
+  mobileMedia = window.matchMedia('(max-width: 767px), (max-width: 980px) and (max-height: 500px)')
+  compactMedia = window.matchMedia('(max-width: 980px)')
   mobileMedia.addEventListener('change', syncMobile)
+  compactMedia.addEventListener('change', syncMobile)
   syncMobile()
   const saved = localStorage.getItem('rfstory-defaults')
   if (saved !== null) {
@@ -546,24 +590,26 @@ onMounted(() => {
   const requested = typeof route.query.template === 'string' ? templateOptions.find((template) => template.id === route.query.template) : undefined
   if (requested !== undefined) settings.template = requested.id
   window.addEventListener('keydown', handleShortcuts)
+  window.addEventListener('keydown', handlePanelKeys)
   nextTick(renderPreview)
 })
-onBeforeUnmount(() => { sourceUrls.forEach((url) => URL.revokeObjectURL(url)); window.removeEventListener('keydown', handleShortcuts); mobileMedia?.removeEventListener('change', syncMobile) })
+onBeforeUnmount(() => { sourceUrls.forEach((url) => URL.revokeObjectURL(url)); window.removeEventListener('keydown', handleShortcuts); window.removeEventListener('keydown', handlePanelKeys); mobileMedia?.removeEventListener('change', syncMobile); compactMedia?.removeEventListener('change', syncMobile) })
 watch(settings, renderPreview, { deep: true })
 watch(theme, () => { nextTick(renderPreview) })
 watch(showExport, (open) => { if (open) exportDialog.value?.showModal(); else exportDialog.value?.close() })
 </script>
 
 <template>
-  <div class="studio-shell" :data-sheet-open="showSettings" :data-template="settings.template" :data-theme="theme">
-    <button class="materials-toggle" :aria-expanded="showMaterials" type="button" @click="showMaterials = !showMaterials">{{ showMaterials ? '關閉素材' : '素材與模板' }}</button>
-    <StudioSidebar :active-template="settings.template" :theme="theme" @select="selectTemplate" @toggle-theme="toggleTheme" @upload="upload" />
-    <StudioCanvas v-model:canvas="previewCanvas" :has-image="hasImage" :settings="settings" @contextmenu="openPhotoMenu" @view-change="renderPreview" @upload="upload" @delete-photo="deleteSelectedPhoto" @pointercancel="cancelDrag" @pointerdown="beginDrag" @pointermove="moveDrag" @pointerup="finishDrag" />
+  <div ref="shell" class="studio-shell" :data-sheet-open="showSettings" :data-template="settings.template" :data-theme="theme">
+    <button class="materials-toggle" :inert="panelOpen" :aria-expanded="showMaterials" aria-controls="studio-materials" type="button" @click="showMaterials = !showMaterials">素材與模板</button>
+    <div v-if="panelOpen" class="panel-backdrop" aria-hidden="true" @click="closePanels"></div>
+    <StudioSidebar id="studio-materials" :inert="isCompact && !showMaterials" :active-template="settings.template" :theme="theme" @close="showMaterials = false" @select="selectTemplate" @toggle-theme="toggleTheme" @upload="upload" />
+    <StudioCanvas v-model:canvas="previewCanvas" :inert="panelOpen" :has-image="hasImage" :settings="settings" @contextmenu="openPhotoMenu" @view-change="renderPreview" @upload="upload" @delete-photo="deleteSelectedPhoto" @pointercancel="cancelDrag" @pointerdown="beginDrag" @pointermove="moveDrag" @pointerup="finishDrag" />
     <StudioPhotoContextMenu v-if="contextMenu !== null && selectedPhoto !== null" :key="`${contextMenu.x}-${contextMenu.y}-${selectedPhoto.id}`" :x="contextMenu.x" :y="contextMenu.y" :label="photoLabel(settings.photos, selectedPhoto.id)" :can-raise="selectedLayerIndex < settings.photos.length - 1" :can-lower="selectedLayerIndex > 0" @crop="beginCrop" @raise="movePhotoLayer(1)" @lower="movePhotoLayer(-1)" @close="closePhotoMenu" />
     <StudioPhotoCropDialog v-if="croppingPhoto !== null" :src="sourceImages.get(croppingPhoto.id)?.src ?? ''" :label="photoLabel(settings.photos, croppingPhoto.id)" :crop="croppingPhoto.crop" @apply="applyCrop" @close="croppingPhoto = null" />
-    <StudioInspector v-if="!isMobile || showSettings" :model-value="settings" :selected-photo="selectedPhoto" @close="showSettings = false" @select-photo="selectPhoto" @photo-update="updatePhoto" @redo="redo" @save="saveDefault" @undo="undo" @update="updateSettings" />
+    <StudioInspector v-if="!isMobile || showSettings" id="studio-settings" :inert="isCompact && showMaterials" :model-value="settings" :selected-photo="selectedPhoto" :can-raise="selectedLayerIndex < settings.photos.length - 1" :can-lower="selectedLayerIndex > 0" @crop="beginCrop" @raise="movePhotoLayer(1)" @lower="movePhotoLayer(-1)" @delete="deleteSelectedPhoto" @close="showSettings = false" @select-photo="selectPhoto" @photo-update="updatePhoto" @redo="redo" @save="saveDefault" @undo="undo" @update="updateSettings" />
     <p v-if="notice && showSettings" class="sheet-notice" aria-live="polite">{{ notice }}</p>
-    <footer class="studio-footer"><span v-if="notice" aria-live="polite">{{ notice }}</span><button class="settings-action" :aria-expanded="showSettings" type="button" @click="showSettings = !showSettings">設定</button><button :disabled="!hasImage" type="button" @click="showExport = true">匯出照片 <span class="mono">⌘E</span></button></footer>
+    <footer class="studio-footer" :inert="panelOpen"><span v-if="notice" aria-live="polite">{{ notice }}</span><button class="settings-action" :aria-expanded="showSettings" aria-controls="studio-settings" type="button" @click="showSettings = !showSettings">{{ selectedPhoto ? '照片設定' : '畫布設定' }}</button><button :disabled="!hasImage" type="button" @click="showExport = true">匯出照片 <span class="mono">⌘E</span></button></footer>
     <dialog ref="exportDialog" aria-labelledby="export-title" @close="showExport = false"><form method="dialog" class="export-dialog relative grid gap-[18px] p-8"><button class="dialog-close absolute top-3 right-3 size-8 border-0 bg-transparent text-2xl text-studio-fg" aria-label="關閉匯出視窗" type="submit">×</button><p class="m-0 font-mono text-[11px] tracking-[.08em] text-studio-muted">EXPORT PREVIEW</p><h1 id="export-title" class="m-0 font-serif text-[28px] leading-[1.08]">將這一格留下來</h1><p class="m-0 leading-normal text-studio-muted">匯出畫面會與目前預覽一致，並且不會複製原始 metadata。</p><label>檔案格式<select v-model="settings.format"><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></label><button :disabled="!hasImage" class="primary-action" type="button" @click="exportImage">下載檔案</button></form></dialog>
   </div>
 </template>

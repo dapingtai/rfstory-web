@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { nextTick, ref, useId, watch } from 'vue'
-import { photoLabel, type StudioPhoto, type StudioSettings } from '~/composables/useStudio'
+import { globalInfoFields, photoLabel, type GlobalInfoField, type StudioPhoto, type StudioSettings } from '~/composables/useStudio'
 
-const props = defineProps<{ readonly modelValue: StudioSettings; readonly selectedPhoto: StudioPhoto | null }>()
-const emit = defineEmits<{ update: [settings: StudioSettings]; photoUpdate: [photo: StudioPhoto]; selectPhoto: [id: string | null]; save: []; undo: []; redo: []; close: [] }>()
+const props = defineProps<{ readonly modelValue: StudioSettings; readonly selectedPhoto: StudioPhoto | null; readonly canRaise: boolean; readonly canLower: boolean }>()
+const emit = defineEmits<{ update: [settings: StudioSettings]; photoUpdate: [photo: StudioPhoto]; selectPhoto: [id: string | null]; save: []; undo: []; redo: []; close: []; crop: []; raise: []; lower: []; delete: [] }>()
 const scopeId = useId()
 const tabList = ref<HTMLElement | null>(null)
 watch(() => props.selectedPhoto?.id, async () => {
@@ -34,6 +34,10 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
   if (props.selectedPhoto === null) return
   emit('photoUpdate', { ...props.selectedPhoto, [key]: value })
 }
+
+function updateVisibility(key: GlobalInfoField, visible: boolean): void {
+  update('globalInfoVisibility', { ...props.modelValue.globalInfoVisibility, [key]: visible })
+}
 </script>
 
 <template>
@@ -53,8 +57,12 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
     <div :id="`${scopeId}-panel`" :key="selectedPhoto?.id ?? 'global'" role="tabpanel" :aria-labelledby="selectedPhoto === null ? `${scopeId}-global` : `${scopeId}-${selectedPhoto.id}`" tabindex="0">
     <template v-if="selectedPhoto === null">
     <section class="control-group">
-      <label>作品標題<input :value="modelValue.title" @input="update('title', ($event.target as HTMLInputElement).value)"></label>
-      <label>敘述<textarea :value="modelValue.note" rows="2" @input="update('note', ($event.target as HTMLTextAreaElement).value)"></textarea></label>
+      <div v-for="field in globalInfoFields.slice(0, 3)" :key="field.key" class="global-info-field">
+        <div class="global-field-heading"><label :for="`${scopeId}-${field.key}`">{{ field.label }}</label><label class="visibility-toggle"><input type="checkbox" :checked="modelValue.globalInfoVisibility[field.key] !== false" :aria-label="`顯示${field.label}`" @change="updateVisibility(field.key, ($event.target as HTMLInputElement).checked)">顯示</label></div>
+        <textarea v-if="field.multiline" :id="`${scopeId}-${field.key}`" :value="modelValue[field.key]" rows="2" @input="update(field.key, ($event.target as HTMLTextAreaElement).value)"></textarea>
+        <input v-else :id="`${scopeId}-${field.key}`" :value="modelValue[field.key]" @input="update(field.key, ($event.target as HTMLInputElement).value)">
+      </div>
+      <span class="control-title">依目前模板顯示對應欄位；畫布標記用於「底片紀錄」。取消勾選會保留內容。</span>
     </section>
     <section class="control-group">
       <div class="control-title">畫面</div>
@@ -67,10 +75,21 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
       <StudioNumberControl label="資訊水平位移" :model-value="modelValue.globalInfoOffsetX" :min="-100" :max="100" :step="0.1" unit="%" @update:model-value="update('globalInfoOffsetX', $event)" />
       <StudioNumberControl label="資訊垂直位移" :model-value="modelValue.globalInfoOffsetY" :min="-100" :max="100" :step="0.1" unit="%" @update:model-value="update('globalInfoOffsetY', $event)" />
       <button type="button" @click="emit('update', { ...modelValue, globalInfoOffsetX: 0, globalInfoOffsetY: 0 })">重設資訊位置</button>
-      <div class="field-grid"><label>相機<input :value="modelValue.camera" @input="update('camera', ($event.target as HTMLInputElement).value)"></label><label class="wide-field">鏡頭<input :value="modelValue.lens" @input="update('lens', ($event.target as HTMLInputElement).value)"></label><label>光圈<input :value="modelValue.aperture" @input="update('aperture', ($event.target as HTMLInputElement).value)"></label><label>快門<input :value="modelValue.shutter" @input="update('shutter', ($event.target as HTMLInputElement).value)"></label><label>感光度<input :value="modelValue.iso" @input="update('iso', ($event.target as HTMLInputElement).value)"></label><label>日期<input :value="modelValue.date" @input="update('date', ($event.target as HTMLInputElement).value)"></label></div>
+      <div class="field-grid">
+        <div v-for="field in globalInfoFields.slice(3)" :key="field.key" class="global-info-field" :class="{ 'wide-field': field.key === 'camera' || field.key === 'lens' }">
+          <div class="global-field-heading"><label :for="`${scopeId}-${field.key}`">{{ field.label }}</label><label class="visibility-toggle"><input type="checkbox" :checked="modelValue.globalInfoVisibility[field.key] !== false" :aria-label="`顯示${field.label}`" @change="updateVisibility(field.key, ($event.target as HTMLInputElement).checked)">顯示</label></div>
+          <input :id="`${scopeId}-${field.key}`" :value="modelValue[field.key]" @input="update(field.key, ($event.target as HTMLInputElement).value)">
+        </div>
+      </div>
     </section>
     </template>
     <section v-else class="control-group">
+      <div class="photo-actions" role="group" aria-label="選取照片操作">
+        <button type="button" @click="emit('crop')">裁切照片</button>
+        <button type="button" :disabled="!canRaise" @click="emit('raise')">上移一層</button>
+        <button type="button" :disabled="!canLower" @click="emit('lower')">下移一層</button>
+        <button type="button" @click="emit('delete')">刪除照片</button>
+      </div>
       <div class="control-title">選取照片的邊框模板</div>
       <StudioPhotoFramePicker :model-value="selectedPhoto.frame" @update:model-value="updatePhoto('frame', $event)" />
       <StudioNumberControl v-if="selectedPhoto.frame !== 'none'" label="照片框寬" :model-value="selectedPhoto.frameBorder" :min="1" :max="12" unit="%" @update:model-value="updatePhoto('frameBorder', $event)" />
@@ -82,7 +101,7 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
       <div class="control-title">選取照片的資訊</div>
       <label>照片標題<input :value="selectedPhoto.title" @input="updatePhoto('title', ($event.target as HTMLInputElement).value)"></label>
       <label>照片敘述<textarea :value="selectedPhoto.note" rows="2" @input="updatePhoto('note', ($event.target as HTMLTextAreaElement).value)"></textarea></label>
-      <div class="field-grid"><label>相機<input :value="selectedPhoto.camera" @input="updatePhoto('camera', ($event.target as HTMLInputElement).value)"></label><label class="wide-field">鏡頭<input :value="selectedPhoto.lens" @input="updatePhoto('lens', ($event.target as HTMLInputElement).value)"></label><label>光圈<input :value="selectedPhoto.aperture" @input="updatePhoto('aperture', ($event.target as HTMLInputElement).value)"></label><label>快門<input :value="selectedPhoto.shutter" @input="updatePhoto('shutter', ($event.target as HTMLInputElement).value)"></label><label>感光度<input :value="selectedPhoto.iso" @input="updatePhoto('iso', ($event.target as HTMLInputElement).value)"></label><label>日期<input :value="selectedPhoto.date" @input="updatePhoto('date', ($event.target as HTMLInputElement).value)"></label></div>
+      <div class="field-grid"><label class="wide-field">相機<input :value="selectedPhoto.camera" @input="updatePhoto('camera', ($event.target as HTMLInputElement).value)"></label><label class="wide-field">鏡頭<input :value="selectedPhoto.lens" @input="updatePhoto('lens', ($event.target as HTMLInputElement).value)"></label><label>光圈<input :value="selectedPhoto.aperture" @input="updatePhoto('aperture', ($event.target as HTMLInputElement).value)"></label><label>快門<input :value="selectedPhoto.shutter" @input="updatePhoto('shutter', ($event.target as HTMLInputElement).value)"></label><label>感光度<input :value="selectedPhoto.iso" @input="updatePhoto('iso', ($event.target as HTMLInputElement).value)"></label><label>日期<input :value="selectedPhoto.date" @input="updatePhoto('date', ($event.target as HTMLInputElement).value)"></label></div>
     </section>
     <section v-if="selectedPhoto === null && modelValue.photos.length === 0" class="control-group"><div class="control-title">上傳照片後，可從畫布或上方分頁選取，開啟單張照片工具。</div></section>
     </div>
@@ -94,6 +113,10 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
 
 <style scoped>
 @reference "../assets/rfstory.css";
+.global-info-field { @apply grid min-w-0 gap-1.5; }
+.global-field-heading { @apply flex flex-wrap items-center justify-between gap-2; }
+.control-group .visibility-toggle { @apply inline-flex min-h-6 cursor-pointer items-center gap-1.5; }
+.control-group .visibility-toggle input { @apply size-4 min-h-0 w-4 cursor-pointer p-0 accent-studio-accent; }
 .scope-navigation { @apply sticky -top-6 z-1 border-b border-studio-border bg-studio-surface pt-4 pb-3 max-[680px]:-top-5; }
 .scope-tabs { @apply flex gap-1.5 overflow-x-auto px-0.5 pt-0.5 pb-2 [scrollbar-width:thin]; }
 .scope-tabs button { @apply min-h-9 shrink-0 rounded-md border border-studio-border bg-transparent px-2.5 py-2 text-xs text-studio-muted max-[680px]:min-h-11; }
@@ -104,4 +127,8 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
 .scope-badge { @apply rounded-[3px] bg-studio-bg px-[5px] py-[3px] text-[10px] tracking-[.06em] text-studio-muted; }
 .scope-summary[data-scope="photo"] .scope-badge { @apply bg-studio-accent text-studio-bg; }
 .scope-summary p { @apply col-span-full m-0 text-xs leading-[1.6] text-studio-muted; }
+@media (max-width: 767px), (max-width: 980px) and (max-height: 500px) {
+  .scope-navigation { position: static; }
+  .scope-tabs button { min-height: 44px; }
+}
 </style>

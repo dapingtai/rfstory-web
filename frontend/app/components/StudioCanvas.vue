@@ -67,6 +67,7 @@ function finishPan(): void {
 }
 
 function pointerDown(event: PointerEvent): void {
+  if (!event.isPrimary) return
   if (panMode.value || spaceHeld.value || event.button === 1) startPan(event)
   else if (event.button === 0) emit('pointerdown', event)
 }
@@ -107,7 +108,7 @@ function handleCanvasKey(event: KeyboardEvent): void {
 
 <template>
   <main class="canvas-panel">
-    <div class="flex flex-wrap items-center gap-x-2 gap-y-2.5 text-xs text-studio-muted">
+    <div class="canvas-header flex flex-wrap items-center gap-x-2 gap-y-2.5 text-xs text-studio-muted">
       <span class="size-[7px] rounded-full bg-studio-accent"></span><span>本機工作階段</span>
       <span class="mono ml-auto">{{ settings.ratio }}</span>
       <StudioCanvasToolbar v-model="zoom" :pan-mode="panMode" @toggle-pan="panMode = !panMode" @reset="resetView" />

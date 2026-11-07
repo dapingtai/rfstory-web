@@ -27,7 +27,8 @@ bun install
 - Theme utilities include `bg-studio-bg`, `bg-studio-surface`, `text-studio-fg`, `text-studio-muted`, `border-studio-border`, and `text-studio-accent`.
 - Palette variables are retained for the canvas renderer and switch with `data-theme`. Do not replace them with fixed colors in canvas rendering code.
 - Scoped styles using `@apply` must include `@reference "../assets/rfstory.css";` to access the theme without duplicating the global stylesheet.
-- Studio layout breakpoints remain 980px (tablet) and 680px (mobile). Dynamic canvas sizing and crop/menu coordinates remain CSS variables or Vue style bindings.
+- Studio layout breakpoints are 980px (tablet drawer) and 767px (mobile bottom sheet). Compact landscape screens (width ≤980px and height ≤500px) also use the mobile layout. Dynamic canvas sizing and crop/menu coordinates remain CSS variables or Vue style bindings.
+- Mobile panels close via their close button, backdrop, or Escape, trap keyboard focus, and restore focus to their trigger. Photo settings include touch-accessible crop, layer ordering, and delete actions.
 
 ## Running locally
 
@@ -48,6 +49,11 @@ bun run dev
 ```
 
 ## Production
+
+### Checks
+
+- `npm test`: photo-frame unit tests.
+- After building, `npm run test:rwd`: Chrome browser checks at 320, 390, 744, 820, 844 (landscape), and 1440px, plus upload, touch drag, photo tools, and export dialog checks. Screenshots are saved in the printed temporary directory. Set `CHROME_PATH` to override the Chrome executable and `RWD_ARTIFACT_DIR` to choose the screenshot directory.
 
 Build the application for production:
 

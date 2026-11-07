@@ -46,4 +46,8 @@ function commit(): void {
 .number-control-fields button { @apply h-9 flex-[0_0_36px] rounded-md border border-studio-border bg-studio-bg/70 p-0 text-xs text-studio-fg max-[680px]:h-11 max-[680px]:basis-11; }
 .number-control-fields button:hover:not(:disabled) { @apply bg-studio-accent/8; }
 .number-control-fields button:disabled { @apply cursor-not-allowed opacity-35; }
+@media (max-width: 767px), (max-width: 980px) and (max-height: 500px) {
+  .number-control-fields input { height: 44px; font-size: 16px; }
+  .number-control-fields button { height: 44px; flex-basis: 44px; }
+}
 </style>
