@@ -16,8 +16,8 @@
   --template-dark-bg: #161618;
   --template-dark-fg: #F5F5F5;
   --light-surface: #FFFFFF;
-  --light-muted: #71717A;
-  --light-border: #E4E4E7;
+  --light-muted: #68645F;
+  --light-border: #DEDBD5;
   --light-accent: #292524;
 }
 
@@ -56,19 +56,26 @@
   .mono { @apply font-mono tabular-nums; }
   .studio-shell {
     @apply grid h-dvh grid-cols-[264px_minmax(0,1fr)_312px] grid-rows-[minmax(0,1fr)_64px] overflow-hidden bg-studio-bg;
+    color-scheme: dark;
+    color: var(--fg);
   }
   .studio-shell[data-theme="light"] {
-    --bg: var(--paper);
+    --bg: #F3F2EE;
     --surface: var(--light-surface);
     --fg: var(--ink);
     --muted: var(--light-muted);
     --border: var(--light-border);
     --accent: var(--light-accent);
+    color-scheme: light;
   }
   .materials-toggle { @apply hidden; }
   .studio-sidebar { @apply min-h-0 overflow-auto border-r border-studio-border bg-studio-surface px-4 py-6; }
   .brand-lockup { @apply mb-10 flex items-center gap-2.5 font-serif text-xl; }
-  .theme-toggle { @apply ml-auto border-0 bg-transparent text-[11px] text-studio-muted; }
+  .theme-toggle { @apply ml-auto grid size-11 shrink-0 place-items-center rounded-full border border-studio-border bg-studio-bg text-studio-muted transition-[color,background-color,border-color,transform] duration-150; }
+  .theme-toggle:hover { @apply border-studio-accent bg-studio-accent/8 text-studio-fg; }
+  .theme-toggle:active { @apply scale-95; }
+  .studio-shell[data-theme="dark"] .theme-toggle:hover { color: #E8C88E; }
+  .theme-toggle-icon { @apply pointer-events-none; }
   .studio-sidebar section { @apply mt-7; }
   .section-heading, .inspector-heading { @apply flex justify-between text-xs tracking-[.08em] text-studio-muted uppercase; }
   .upload-zone { @apply mt-3 grid gap-1.5 rounded-lg border border-dashed border-studio-border px-4 py-6 text-xs text-studio-muted transition-[background,border-color] duration-150 ease-in-out; }
