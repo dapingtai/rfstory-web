@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, toRaw, watch } from 'vue'
 import { aspectSize, defaultSettings, globalInfoText, photoLabel, templateOptions, type StudioPhoto, type StudioSettings, type TemplateId } from '~/composables/useStudio'
 import { drawFramedPhoto, photoFrameLayout, resolvePhotoFrame, type PhotoCrop } from '~/composables/usePhotoFrame'
+import { canvasFont, loadStudioFont, studioTextSize } from '~/composables/useStudioFont'
 
 type CanvasBounds = { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 type DragTarget = { readonly kind: 'photo' | 'info' | 'resize' | 'global'; readonly photoId: string; readonly bounds: CanvasBounds; readonly corner?: { x: number; y: number } }
@@ -74,17 +75,30 @@ watch(panelOpen, async (open) => {
 })
 
 function drawLines(context: CanvasRenderingContext2D, value: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines = 2, draw = (text: string, tx: number, ty: number) => context.fillText(text, tx, ty)): void {
+  wrapCanvasText(context, value, maxWidth, maxLines).forEach((line, row) => {
+    if (line !== '') draw(line, x, y + row * lineHeight)
+  })
+}
+
+function wrapCanvasText(context: CanvasRenderingContext2D, value: string, maxWidth: number, maxLines = 2): string[] {
+  if (value === '' || maxLines < 1) return []
+  const result: string[] = []
   let line = ''
-  let row = 0
-  for (const character of Array.from(value)) {
+  for (const character of Array.from(value.replace(/\r\n?/g, '\n'))) {
+    if (character === '\n') {
+      result.push(line)
+      if (result.length === maxLines) return result
+      line = ''
+      continue
+    }
     const next = line + character
     if (context.measureText(next).width <= maxWidth || line === '') { line = next; continue }
-    draw(line, x, y + row * lineHeight)
-    row += 1
-    if (row === maxLines) return
+    result.push(line)
+    if (result.length === maxLines) return result
     line = character
   }
-  if (line !== '') draw(line, x, y + row * lineHeight)
+  result.push(line)
+  return result
 }
 
 function snapshot(): StudioSettings {
@@ -154,7 +168,7 @@ function drawPhotoInfo(context: CanvasRenderingContext2D, photo: StudioPhoto, wi
   context.translate(bounds.x, bounds.y)
   context.scale(scale, scale)
   lines.forEach((line, index) => {
-    context.font = index === 0 ? '18px Georgia' : '12px monospace'
+    context.font = canvasFont(settings.font, index === 0 ? 18 : 12, index === 0 ? 'Georgia' : 'monospace')
     drawLines(context, line, 0, 18 + index * 20, bounds.width / scale, 16, 1)
   })
   context.restore()
@@ -265,49 +279,90 @@ function drawFrameText(context: CanvasRenderingContext2D, width: number, height:
     const descent = metrics.actualBoundingBoxDescent || 4
     globalInfoRegions.push({ x: x * transform.a + transform.e, y: (y - ascent) * transform.d + transform.f, width: metrics.width * transform.a, height: (ascent + descent) * transform.d })
   }
-  const lines = (value: string, x: number, y: number, maxWidth: number, lineHeight: number): void => drawLines(context, value, x, y, maxWidth, lineHeight, 2, text)
+  const lines = (value: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines = 2): void => drawLines(context, value, x, y, maxWidth, lineHeight, maxLines, text)
   const margin = Math.min(settings.border, width * 0.08)
   const editorial = settings.template === 'editorial'
+  const titleSize = studioTextSize(settings, 'title')
+  const noteSize = studioTextSize(settings, 'note')
+  const infoSize = studioTextSize(settings, 'info')
+  const titleLineHeight = Math.ceil(titleSize * 1.2)
+  const noteLineHeight = Math.ceil(noteSize * 1.3)
+  const infoLineHeight = Math.ceil(infoSize * 1.3)
   if (settings.template === 'technical-exif') {
-    context.font = '15px monospace'
-    if (settings.ratio === '9:16') {
-      lines(globalInfoText(settings, ['date', 'camera', 'lens'], '  '), margin, 32, width - margin * 2, 22)
-      lines(globalInfoText(settings, ['aperture', 'shutter', 'iso'], '  '), margin, 82, width - margin * 2, 22)
+    context.font = canvasFont(settings.font, infoSize, 'monospace')
+    const infoTop = Math.max(32, infoSize + 12)
+    const stacked = settings.ratio === '9:16' || infoSize > 15
+    if (stacked) {
+      lines(globalInfoText(settings, ['date', 'camera', 'lens'], '  '), margin, infoTop, width - margin * 2, infoLineHeight)
+      lines(globalInfoText(settings, ['aperture', 'shutter', 'iso'], '  '), margin, infoTop + infoLineHeight * 2 + 10, width - margin * 2, infoLineHeight)
     } else {
-      text(globalInfoText(settings, ['date', 'camera', 'lens'], '  '), margin, 32)
-      text(globalInfoText(settings, ['aperture', 'shutter', 'iso'], '  '), width - 310, 32)
+      text(globalInfoText(settings, ['date', 'camera', 'lens'], '  '), margin, infoTop)
+      text(globalInfoText(settings, ['aperture', 'shutter', 'iso'], '  '), width - 310, infoTop)
     }
-    lines(globalInfoText(settings, ['note']), margin, settings.ratio === '9:16' ? 132 : 60, width - margin * 2, 20)
+    context.font = canvasFont(settings.font, noteSize, 'monospace')
+    lines(globalInfoText(settings, ['note']), margin, infoTop + (stacked ? infoLineHeight * 4 + 20 : infoSize + 10) + noteSize, width - margin * 2, noteLineHeight)
     return
   }
   if (editorial) {
-    context.font = '32px Georgia'
-    lines(globalInfoText(settings, ['title']), width - 230, margin + 44, 185, 38)
-    context.font = '16px Georgia'
-    lines(globalInfoText(settings, ['note']), width - 230, margin + 145, 185, 24)
-    context.font = '13px monospace'
-    lines(globalInfoText(settings, ['date', 'camera', 'lens']), width - 230, height - 150, 185, 20)
+    context.font = canvasFont(settings.font, titleSize)
+    const title = globalInfoText(settings, ['title'])
+    const titleRows = wrapCanvasText(context, title, 185, 4)
+    const titleTop = margin + Math.max(44, titleSize)
+    lines(title, width - 230, titleTop, 185, titleLineHeight, 4)
+    const noteTop = Math.max(margin + 145, titleTop + (Math.max(1, titleRows.length) - 1) * titleLineHeight + noteSize + 20)
+    context.font = canvasFont(settings.font, noteSize)
+    const note = globalInfoText(settings, ['note'])
+    const noteRows = wrapCanvasText(context, note, 185, 2)
+    lines(note, width - 230, noteTop, 185, noteLineHeight)
+    context.font = canvasFont(settings.font, infoSize, 'monospace')
+    lines(globalInfoText(settings, ['date', 'camera', 'lens']), width - 230, Math.max(height - 150, noteTop + (Math.max(1, noteRows.length) - 1) * noteLineHeight + infoSize + 16), 185, infoLineHeight)
     return
   }
   if (settings.template === 'signature') {
     const title = globalInfoText(settings, ['title'])
-    context.font = '26px Georgia'
-    text(title, width - margin - context.measureText(title).width, height - 48)
-    context.font = '14px monospace'
-    text(globalInfoText(settings, ['date']), margin, height - 48)
-    lines(globalInfoText(settings, ['note']), margin, height - 24, width - margin * 2, 16)
+    context.font = canvasFont(settings.font, noteSize)
+    const note = globalInfoText(settings, ['note'])
+    const noteRows = wrapCanvasText(context, note, width - margin * 2, 2)
+    const noteTop = height - 24 - (Math.max(1, noteRows.length) - 1) * noteLineHeight
+    const titleBottom = Math.min(height - 48, noteTop - noteSize - 10)
+    context.font = canvasFont(settings.font, titleSize)
+    const titleRows = wrapCanvasText(context, title, (width - margin * 2) * 0.68, 4)
+    titleRows.forEach((line, index) => {
+      if (line !== '') text(line, width - margin - context.measureText(line).width, titleBottom - (titleRows.length - 1 - index) * titleLineHeight)
+    })
+    context.font = canvasFont(settings.font, infoSize, 'monospace')
+    const date = globalInfoText(settings, ['date'])
+    const dateWidth = (width - margin * 2) * 0.28
+    const dateRows = wrapCanvasText(context, date, dateWidth, 2)
+    lines(date, margin, titleBottom - (Math.max(1, dateRows.length) - 1) * infoLineHeight, dateWidth, infoLineHeight)
+    context.font = canvasFont(settings.font, noteSize)
+    lines(note, margin, noteTop, width - margin * 2, noteLineHeight)
     return
   }
-  context.font = '14px Georgia'
-  lines(globalInfoText(settings, ['note']), margin, height - 110, width - margin * 2, 18)
+  context.font = canvasFont(settings.font, titleSize)
+  const title = globalInfoText(settings, ['title'])
+  const titleRows = wrapCanvasText(context, title, width - margin * 2, 4)
+  const info = globalInfoText(settings, ['date', 'camera', 'aperture', 'shutter', 'iso'])
+  context.font = canvasFont(settings.font, infoSize, 'monospace')
+  const infoRows = wrapCanvasText(context, info, width - margin * 2, 2)
+  const infoTop = height - 30 - (Math.max(1, infoRows.length) - 1) * infoLineHeight
+  const titleTop = infoTop - infoSize - 9 - (Math.max(1, titleRows.length) - 1) * titleLineHeight
+  const label = settings.template === 'film-archive' ? globalInfoText(settings, ['frameLabel']) : ''
+  const labelRows = wrapCanvasText(context, label, width - margin * 2, 2)
+  const labelTop = titleTop - titleSize - 2 - (Math.max(1, labelRows.length) - 1) * infoLineHeight
+  context.font = canvasFont(settings.font, noteSize)
+  const note = globalInfoText(settings, ['note'])
+  const noteRows = wrapCanvasText(context, note, width - margin * 2, 2)
+  const noteBottom = (labelRows.length > 0 ? labelTop - infoSize : titleTop - titleSize) - 14
+  lines(note, margin, noteBottom - (Math.max(1, noteRows.length) - 1) * noteLineHeight, width - margin * 2, noteLineHeight)
   if (settings.template === 'film-archive') {
-    context.font = '13px monospace'
-    lines(globalInfoText(settings, ['frameLabel']), margin, height - 82, width - margin * 2, 16)
+    context.font = canvasFont(settings.font, infoSize, 'monospace')
+    lines(label, margin, labelTop, width - margin * 2, infoLineHeight)
   }
-  context.font = settings.template === 'classic-white' ? '30px Georgia' : '28px Georgia'
-  lines(globalInfoText(settings, ['title']), margin, height - 52, width - margin * 2, 34)
-  context.font = '13px monospace'
-  lines(globalInfoText(settings, ['date', 'camera', 'aperture', 'shutter', 'iso']), margin, height - 30, width - margin * 2, 16)
+  context.font = canvasFont(settings.font, titleSize)
+  lines(title, margin, titleTop, width - margin * 2, titleLineHeight, 4)
+  context.font = canvasFont(settings.font, infoSize, 'monospace')
+  lines(info, margin, infoTop, width - margin * 2, infoLineHeight)
 }
 
 function renderPreview(): void { if (previewCanvas.value !== null) renderFrame(previewCanvas.value, true) }
@@ -557,8 +612,12 @@ function saveDefault(): void { localStorage.setItem('rfstory-defaults', JSON.str
 function toggleTheme(): void { theme.value = theme.value === 'dark' ? 'light' : 'dark' }
 function handleShortcuts(event: KeyboardEvent): void { if (croppingPhoto.value !== null) return; if (!(event.metaKey || event.ctrlKey)) return; if (event.key.toLowerCase() === 'z') { event.preventDefault(); event.shiftKey ? redo() : undo() }; if (event.key.toLowerCase() === 'e' && hasImage.value) { event.preventDefault(); showExport.value = true } }
 
-function exportImage(): void {
+async function exportImage(): Promise<void> {
   if (!hasImage.value) return
+  const font = settings.font
+  try { await loadStudioFont(font, document.fonts) }
+  catch { notice.value = '字體載入失敗，請重新選用字體後再匯出。'; return }
+  if (font !== settings.font) { notice.value = '字體已變更，請重新匯出。'; return }
   const canvas = document.createElement('canvas')
   renderFrame(canvas)
   canvas.toBlob((blob) => {
@@ -589,6 +648,17 @@ onMounted(() => {
   }
   const requested = typeof route.query.template === 'string' ? templateOptions.find((template) => template.id === route.query.template) : undefined
   if (requested !== undefined) settings.template = requested.id
+  watch(() => settings.font, async (font) => {
+    if (font !== 'auto') notice.value = '正在載入畫布字體…'
+    try {
+      await loadStudioFont(font, document.fonts)
+      if (font !== settings.font) return
+      if (notice.value === '正在載入畫布字體…') notice.value = '畫布字體已載入。'
+      renderPreview()
+    } catch {
+      if (font === settings.font) notice.value = '字體載入失敗，目前使用替代字體；請重新選用字體再試。'
+    }
+  }, { immediate: true })
   window.addEventListener('keydown', handleShortcuts)
   window.addEventListener('keydown', handlePanelKeys)
   nextTick(renderPreview)

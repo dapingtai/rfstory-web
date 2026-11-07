@@ -1,4 +1,5 @@
 import type { PhotoCrop, PhotoFrameId } from './usePhotoFrame'
+import type { StudioFontId, StudioFontSizes } from './useStudioFont'
 
 export const templateOptions = [
   { id: 'film-archive', name: '底片紀錄', description: '預設 · 柔暖邊界' },
@@ -13,7 +14,7 @@ export type TemplateId = (typeof templateOptions)[number]['id']
 
 export const globalInfoFields = [
   { key: 'frameLabel', label: '畫布標記', multiline: false },
-  { key: 'title', label: '作品標題', multiline: false },
+  { key: 'title', label: '作品標題', multiline: true },
   { key: 'note', label: '敘述', multiline: true },
   { key: 'camera', label: '相機', multiline: false },
   { key: 'lens', label: '鏡頭', multiline: false },
@@ -60,6 +61,8 @@ export type StudioPhoto = {
 
 export type StudioSettings = {
   template: TemplateId
+  font: StudioFontId
+  fontSizes: StudioFontSizes
   frameLabel: string
   globalInfoVisibility: Partial<Record<GlobalInfoField, boolean>>
   title: string
@@ -80,6 +83,8 @@ export type StudioSettings = {
 
 export const defaultSettings: StudioSettings = {
   template: 'film-archive',
+  font: 'auto',
+  fontSizes: {},
   frameLabel: 'RFSTORY / FRAME 01',
   globalInfoVisibility: { note: false },
   title: 'Untitled Frame',

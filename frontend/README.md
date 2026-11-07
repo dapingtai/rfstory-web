@@ -32,6 +32,15 @@ bun install
 
 ## Running locally
 
+### Canvas fonts
+
+- In global canvas settings, choose template typography, Noto Sans TC (黑體), Noto Serif TC (明體), LXGW WenKai TC (手寫楷體), Chen Yuluoyan 2.0 (繁中手寫), or Liu Jian Mao Cao (簡中草書). Chen Yuluoyan is Traditional Chinese handwriting, not traditional calligraphic cursive. Liu Jian Mao Cao lacks many Traditional Chinese characters and is explicitly labeled as Simplified Chinese cursive. Both use bundled WenKai TC for missing glyphs and load the fallback before export. The choice applies to global text and individual photo information, supports undo/redo, and is included in saved global defaults.
+- Work titles support Enter/newlines and automatic wrapping, up to four visible lines. Title templates reserve space for multiline titles so descriptions and metadata do not overlap. The technical EXIF template continues to display metadata rather than a title.
+- The font-size section independently adjusts global titles (12–72px), descriptions (8–36px), and labels/capture metadata (8–28px). Line spacing adjusts with font size. Reset restores template defaults; custom sizes support history, saved defaults, and export. Individual photo-information sizes are unchanged. Portrait 9:16 retains its existing typography multiplier.
+- Fonts are self-hosted WOFF2 files in `public/fonts/`, loaded only when selected. Export waits for the selected font; failed loads show a message and prevent exporting with an unintended fallback font.
+- Sources: [Noto Sans TC](https://github.com/google/fonts/tree/main/ofl/notosanstc), [Noto Serif TC](https://github.com/google/fonts/tree/main/ofl/notoseriftc), [LXGW WenKai TC](https://github.com/google/fonts/tree/main/ofl/lxgwwenkaitc), and [Liu Jian Mao Cao](https://github.com/google/fonts/tree/main/ofl/liujianmaocao). The Noto variable fonts were instantiated at weight 400 and all fonts converted to WOFF2 without glyph subsetting. SIL Open Font License copies accompany the assets.
+- [Chen Yuluoyan 2.0 Thin](https://github.com/Chenyu-otf/chenyuluoyan_thin) is also bundled as WOFF2 without glyph subsetting, with its SIL Open Font License in `public/fonts/chenyuluoyan-OFL.txt`.
+
 Start the development server on `http://localhost:3000`:
 
 ```bash
@@ -52,7 +61,7 @@ bun run dev
 
 ### Checks
 
-- `npm test`: photo-frame unit tests.
+- `npm test`: photo-frame, global-information, and font loading/asset unit tests.
 - After building, `npm run test:rwd`: Chrome browser checks at 320, 390, 744, 820, 844 (landscape), and 1440px, plus upload, touch drag, photo tools, and export dialog checks. Screenshots are saved in the printed temporary directory. Set `CHROME_PATH` to override the Chrome executable and `RWD_ARTIFACT_DIR` to choose the screenshot directory.
 
 Build the application for production:

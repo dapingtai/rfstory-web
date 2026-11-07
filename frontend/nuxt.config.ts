@@ -2,6 +2,6 @@
 export default defineNuxtConfig({
   modules: ['@nuxt/image', '@nuxtjs/i18n', '@nuxtjs/google-fonts', '@nuxt/ui'],
   compatibilityDate: '2025-07-15',
-  css: ['~/assets/rfstory.css'],
+  css: ['~/assets/rfstory.css', '~/assets/studio-fonts.css'],
   devtools: { enabled: true }
 })

@@ -1,0 +1,40 @@
+/* Bundled under the SIL Open Font License; licenses are in public/fonts/. */
+@font-face {
+  font-family: 'RF Noto Sans TC';
+  src: url('/fonts/NotoSansTC.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RF Noto Serif TC';
+  src: url('/fonts/NotoSerifTC.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RF WenKai TC';
+  src: url('/fonts/LXGWWenKaiTC-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RF Liu Jian Mao Cao';
+  src: url('/fonts/LiuJianMaoCao-Regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RF Chen Yuluoyan TC';
+  src: url('/fonts/ChenYuluoyan-2.0-Thin.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}

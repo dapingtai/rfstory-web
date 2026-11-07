@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { nextTick, ref, useId, watch } from 'vue'
 import { globalInfoFields, photoLabel, type GlobalInfoField, type StudioPhoto, type StudioSettings } from '~/composables/useStudio'
+import { studioFontFamily, studioFontOptions, studioTextSize, studioTextSizeOptions, type StudioTextRole } from '~/composables/useStudioFont'
 
 const props = defineProps<{ readonly modelValue: StudioSettings; readonly selectedPhoto: StudioPhoto | null; readonly canRaise: boolean; readonly canLower: boolean }>()
 const emit = defineEmits<{ update: [settings: StudioSettings]; photoUpdate: [photo: StudioPhoto]; selectPhoto: [id: string | null]; save: []; undo: []; redo: []; close: []; crop: []; raise: []; lower: []; delete: [] }>()
@@ -38,6 +39,10 @@ function updatePhoto<K extends keyof StudioPhoto>(key: K, value: StudioPhoto[K])
 function updateVisibility(key: GlobalInfoField, visible: boolean): void {
   update('globalInfoVisibility', { ...props.modelValue.globalInfoVisibility, [key]: visible })
 }
+
+function updateFontSize(role: StudioTextRole, size: number): void {
+  update('fontSizes', { ...props.modelValue.fontSizes, [role]: size })
+}
 </script>
 
 <template>
@@ -57,10 +62,25 @@ function updateVisibility(key: GlobalInfoField, visible: boolean): void {
     <div :id="`${scopeId}-panel`" :key="selectedPhoto?.id ?? 'global'" role="tabpanel" :aria-labelledby="selectedPhoto === null ? `${scopeId}-global` : `${scopeId}-${selectedPhoto.id}`" tabindex="0">
     <template v-if="selectedPhoto === null">
     <section class="control-group">
+      <div class="control-title">特殊字體</div>
+      <label>畫布字體<select :value="modelValue.font" @change="update('font', ($event.target as HTMLSelectElement).value as StudioSettings['font'])"><option v-for="font in studioFontOptions" :key="font.id" :value="font.id">{{ font.name }}</option></select></label>
+      <p class="font-preview" :style="{ fontFamily: studioFontFamily(modelValue.font) }">光影之間，留下此刻。<br>Restory / Frame 01 · 2026</p>
+      <span v-if="modelValue.font === 'liu-jian-mao-cao'" class="control-title">此款以簡體字為主，多數繁體字會以手寫楷體補字。繁體作品建議選「繁中手寫・辰宇落雁」。</span>
+      <span v-if="modelValue.font === 'chenyuluoyan-tc'" class="control-title">繁體中文手寫風格（非傳統草書）；未收錄的罕用字會以手寫楷體補字。</span>
+      <span class="control-title">套用至全域作品資訊與照片文字，不影響介面字體。首次選用需載入字體。</span>
+    </section>
+    <section class="control-group font-size-controls" aria-label="字體大小">
+      <div class="control-title">字體大小</div>
+      <StudioNumberControl v-for="option in studioTextSizeOptions" :key="option.key" :label="option.label" :model-value="studioTextSize(modelValue, option.key)" :min="option.min" :max="option.max" unit="px" @update:model-value="updateFontSize(option.key, $event)" />
+      <button type="button" @click="update('fontSizes', {})">重設字體大小</button>
+      <span class="control-title">調整全域畫布文字，不影響單張照片資訊與介面字體。重設後跟隨模板；9:16 會沿用社群版面放大比例。</span>
+    </section>
+    <section class="control-group">
       <div v-for="field in globalInfoFields.slice(0, 3)" :key="field.key" class="global-info-field">
         <div class="global-field-heading"><label :for="`${scopeId}-${field.key}`">{{ field.label }}</label><label class="visibility-toggle"><input type="checkbox" :checked="modelValue.globalInfoVisibility[field.key] !== false" :aria-label="`顯示${field.label}`" @change="updateVisibility(field.key, ($event.target as HTMLInputElement).checked)">顯示</label></div>
-        <textarea v-if="field.multiline" :id="`${scopeId}-${field.key}`" :value="modelValue[field.key]" rows="2" @input="update(field.key, ($event.target as HTMLTextAreaElement).value)"></textarea>
+        <textarea v-if="field.multiline" :id="`${scopeId}-${field.key}`" :value="modelValue[field.key]" :aria-describedby="field.key === 'title' ? `${scopeId}-title-hint` : undefined" rows="2" @input="update(field.key, ($event.target as HTMLTextAreaElement).value)"></textarea>
         <input v-else :id="`${scopeId}-${field.key}`" :value="modelValue[field.key]" @input="update(field.key, ($event.target as HTMLInputElement).value)">
+        <span v-if="field.key === 'title'" :id="`${scopeId}-title-hint`" class="control-title">按 Enter 換行；畫布標題最多顯示 4 行（含自動折行）。</span>
       </div>
       <span class="control-title">依目前模板顯示對應欄位；畫布標記用於「底片紀錄」。取消勾選會保留內容。</span>
     </section>
@@ -113,6 +133,7 @@ function updateVisibility(key: GlobalInfoField, visible: boolean): void {
 
 <style scoped>
 @reference "../assets/rfstory.css";
+.font-preview { @apply m-0 rounded-md border border-studio-border bg-studio-bg/50 p-3 text-lg leading-relaxed text-studio-fg; }
 .global-info-field { @apply grid min-w-0 gap-1.5; }
 .global-field-heading { @apply flex flex-wrap items-center justify-between gap-2; }
 .control-group .visibility-toggle { @apply inline-flex min-h-6 cursor-pointer items-center gap-1.5; }
