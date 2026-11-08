@@ -8,6 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "test": "node --test tests/*.test.mjs",
+    "test:static": "node tests/static-output.mjs",
     "test:rwd": "node tests/rwd.browser.mjs",
     "postinstall": "nuxt prepare"
   },

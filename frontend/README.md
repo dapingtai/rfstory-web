@@ -59,6 +59,23 @@ bun run dev
 
 ## Production
 
+### GitHub Pages 自動部署
+
+- `.github/workflows/deploy-pages.yml` 會在 `main` 的前端或 workflow 有更新時執行，也可在 Actions 頁面手動執行。
+- 流程使用 Node.js 22、`npm ci`、單元測試及 `nuxt generate`，檢查靜態輸出後將 `.output/public` 部署至 Pages，不需要 Node.js 伺服器或額外部署 token。
+- 在 GitHub 儲存庫的 **Settings → Pages → Build and deployment → Source** 選擇 **GitHub Actions**，然後推送至 `main` 或手動執行 workflow。
+- 目標 `https://myaccount.github.io/rfstory-web/` 必須使用 `myaccount` 帳號下的 `rfstory-web` 儲存庫。此專案目前的 remote 是 `dapingtai/rfstory-web`，直接部署會對應 `https://dapingtai.github.io/rfstory-web/`；workflow 並不會變更儲存庫擁有者。
+- workflow 設定 `NUXT_APP_BASE_URL=/rfstory-web/`，讓 JS、CSS 和字型使用正確的子路徑。若使用其他儲存庫名稱，請同步修改此值；帳號首頁儲存庫則使用 `/`。
+- 本機開發預設仍使用 `/`。以 PowerShell 驗證 Pages 輸出：
+
+```powershell
+cd frontend
+$env:NUXT_APP_BASE_URL = '/rfstory-web/'
+npm run generate
+npm run test:static
+Remove-Item Env:NUXT_APP_BASE_URL
+```
+
 ### Checks
 
 - `npm test`: photo-frame, global-information, and font loading/asset unit tests.
