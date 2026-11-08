@@ -18,3 +18,30 @@ for (const url of fontURLs) {
   assert.ok(existsSync(resolve(output, resolved.pathname.slice(base.length))), `Font asset must exist: ${url}`)
 }
 console.log(`Static HTML and ${fontURLs.length} font URLs verified for ${base}`)
+
+const manifest = JSON.parse(readFileSync(resolve(output, 'manifest.webmanifest'), 'utf8'))
+assert.equal(manifest.id, base)
+assert.equal(manifest.start_url, base)
+assert.equal(manifest.scope, base)
+assert.equal(manifest.display, 'standalone')
+assert.ok(html.includes(`${base}manifest.webmanifest`))
+assert.ok(html.includes(`${base}icons/apple-touch-icon.png`))
+assert.ok(html.includes(`${base}icons/favicon-32.png`))
+const favicon = readFileSync(resolve(output, 'icons/favicon-32.png'))
+assert.equal(favicon.readUInt32BE(16), 32)
+assert.equal(favicon.readUInt32BE(20), 32)
+for (const icon of manifest.icons) {
+  assert.ok(icon.src.startsWith(base))
+  const bytes = readFileSync(resolve(output, icon.src.slice(base.length)))
+  assert.equal(bytes.subarray(1, 4).toString(), 'PNG')
+  const [width, height] = icon.sizes.split('x').map(Number)
+  assert.equal(bytes.readUInt32BE(16), width)
+  assert.equal(bytes.readUInt32BE(20), height)
+}
+assert.ok(manifest.icons.some(icon => icon.purpose === 'maskable'))
+const worker = readFileSync(resolve(output, 'sw.js'), 'utf8')
+assert.ok(worker.includes(JSON.stringify(base)), 'Offline navigation must stay within the deployment base')
+for (const name of ['NotoSansTC', 'NotoSerifTC', 'LXGWWenKaiTC-Regular', 'LiuJianMaoCao-Regular', 'ChenYuluoyan-2.0-Thin']) {
+  assert.ok(worker.includes(`${name}.woff2`), `${name} must be precached for offline export`)
+}
+console.log('PWA manifest, icons and offline precache verified')

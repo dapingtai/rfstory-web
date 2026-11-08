@@ -9,6 +9,7 @@
     "preview": "nuxt preview",
     "test": "node --test tests/*.test.mjs",
     "test:static": "node tests/static-output.mjs",
+    "test:pwa": "node tests/pwa.browser.mjs",
     "test:rwd": "node tests/rwd.browser.mjs",
     "postinstall": "nuxt prepare"
   },
@@ -34,10 +35,14 @@
     "@tiptap/starter-kit": "^3.32.2",
     "@tiptap/suggestion": "^3.32.2",
     "@tiptap/vue-3": "^3.32.2",
+    "@vite-pwa/nuxt": "^1.1.1",
     "nuxt": "npm:nuxt-nightly@5x",
     "tailwindcss": "^4.3.4",
     "typescript": "^6.0.3",
     "vue": "^3.5.43",
     "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
   }
 }

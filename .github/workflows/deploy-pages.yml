@@ -42,6 +42,10 @@ jobs:
         run: npm run generate
       - name: Verify static deployment
         run: npm run test:static
+      - name: Install browser for PWA checks
+        run: npx playwright install --with-deps chromium
+      - name: Verify offline PWA
+        run: npm run test:pwa
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

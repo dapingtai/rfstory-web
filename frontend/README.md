@@ -59,6 +59,28 @@ bun run dev
 
 ## Production
 
+### PWA（可安裝與離線使用）
+
+- 正式版透過 `@vite-pwa/nuxt` 產生 Web App Manifest 與 Service Worker，支援 GitHub Pages 子路徑。開發模式不註冊 Service Worker，避免開發快取干擾。
+- Chrome／Edge／Android 可使用瀏覽器安裝功能或畫面上的「安裝」提示；iPhone／iPad 請在 Safari 使用「分享 → 加入主畫面」。正式部署需要 HTTPS，本機測試可使用 localhost。
+- 首次連線會快取工作室、圖示及五套中文字型，約 19 MB。看到「離線使用已就緒」後，即可離線重新開啟、選取本機照片及匯出；瀏覽器清除網站資料或回收儲存空間後需重新連線快取。
+- **離線快取不是作品儲存功能**：照片與尚未匯出的編輯不會因安裝 PWA 而永久保存，請在關閉、重新載入或更新前匯出作品。
+- 新版本使用提示式更新，不會強制重新載入；按「更新並重新載入」後仍需確認，以免遺失編輯。開啟期間每小時檢查更新。
+- 品牌圖示以 Raw Story 的單一 R 字母為主角，搭配簡化的復古 35mm 底片框與雙側齒孔，表達原始影像的品牌起點；採用炭黑、暖灰米白與少量琥珀色，避免交織字母或過多裝飾。
+- 圖示母圖為 `public/icons/rfstory-film-master.png`，衍生 192／512px PNG、maskable 圖示、Apple touch icon 與 32px favicon；母圖不納入離線預快取，減少下載量。
+- `npm run test:static` 檢查 Manifest、圖示尺寸及字型預快取；`npm run test:pwa` 用真實瀏覽器驗證 Service Worker 範圍、離線重新載入、畫布、五套字型與更新確認。GitHub Actions 部署前也會執行這些檢查。
+
+```powershell
+cd frontend
+$env:NUXT_APP_BASE_URL = '/rfstory-web/'
+npm run generate
+npm run test:static
+# Windows 預設使用已安裝的 Chrome；其他系統先安裝 Chromium：
+# npx playwright install chromium
+npm run test:pwa
+Remove-Item Env:NUXT_APP_BASE_URL
+```
+
 ### GitHub Pages 自動部署
 
 - `.github/workflows/deploy-pages.yml` 會在 `main` 的前端或 workflow 有更新時執行，也可在 Actions 頁面手動執行。
